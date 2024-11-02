@@ -55,5 +55,6 @@ function Add-GitConfig {
   Write-host -ForegroundColor Cyan ' You should now be able to use git and git-credential-manager to clone a private repository.'
 }
 
+Clear-Host
 Install-Git
 Add-GitConfig
