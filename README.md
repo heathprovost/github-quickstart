@@ -21,7 +21,7 @@ Copy and paste one of the following commands into your terminal and hitting ENTE
 ### Windows PowerShell
 
 ```powershell
-. { Invoke-WebRequest -useb "https://raw.githubusercontent.com/heathprovost/github-quickstart/main/install.ps1" } | Invoke-Expression; install
+. { Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/heathprovost/github-quickstart/main/install.ps1" } | Invoke-Expression
 ```
 
 ### MacOS and Ubuntu
