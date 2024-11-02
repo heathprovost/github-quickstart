@@ -1,4 +1,4 @@
-function Get-Command-Path {
+function Get-CommandPath {
   param ( [string] $command )
   try {
     $path = (Get-Command $command).Source
@@ -9,8 +9,8 @@ function Get-Command-Path {
   }
 }
 
-$git_bin = Get-Command-Path "git"
-$gcm_bin = Get-Command-Path "git-credential-manager"
+$git_bin = Get-CommandPath "git"
+$gcm_bin = Get-CommandPath "git-credential-manager"
 
 Write-Output "$git_bin"
 Write-Output "$gcm_bin"
