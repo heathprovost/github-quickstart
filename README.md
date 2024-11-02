@@ -13,7 +13,7 @@ This script can be used to simplify the process of cloning a private repository 
 Both x86_64 and Arm64 hardware is supported.
 
 *Note: Installing inside of Virtual Machines such as [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and [OrbStack](https://orbstack.dev/)
-is supported, but **only** if the VM is running Ubuntu.*
+is supported, but **only** for Ubuntu.*
 
 ## Installation
 
