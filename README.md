@@ -1,4 +1,4 @@
-# :rocket: GitHub Quickstart
+# :shipit: GitHub Quickstart
 
 This script can be used to simplify the process of cloning a private repository for the very first time using 
 [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager) and a
