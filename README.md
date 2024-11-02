@@ -1,7 +1,7 @@
 # :cyclone: GitHub Quickstart
 
 Simplify the process of cloning a private repository using [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager)
-for the very first time
+for the very first time.
 
 ## :cyclone: Requirements
 
