@@ -1,7 +1,7 @@
 function Get-CommandPath {
   param ( [string] $command )
   try {
-    $path = (Get-Command $command).Source
+    $path = (Get-Command -ErrorAction Stop -Name $command).Source
     return $path
   }
   catch {
