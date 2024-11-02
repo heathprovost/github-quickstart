@@ -13,7 +13,7 @@ function Get-GcmCommandPath {
   $result = $null
   $git_bin = Get-GitCommandPath
   if ( $git_bin -ne $null -and $git_bin -match '\\cmd\\git\.exe$' ) {
-    $gcm_bin = $git_bin -replace "\\cmd\\git\.exe$",'\\mingw64\\bin\\git-credential-manager.exe'
+    $gcm_bin = $git_bin -replace "\\cmd\\git\.exe$",'\mingw64\bin\git-credential-manager.exe'
     if ( Test-Path -Path $gcm_bin ) {
       $result = $gcm_bin
     }
