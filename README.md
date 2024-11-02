@@ -37,5 +37,5 @@ The script will download and execute in one step. You will be promted to provide
 to access private package registries.  
 
 The script will ensure that you have the latest versions of [git](https://git-scm.com/) and [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager)
-installed. Once completed you should be able to successfully clone a private and your shell environment will be configured so that your PAT 
+installed. Once completed you should be able to successfully clone a private repository and your shell environment will be configured so that your PAT 
 is availible by reading the environment variable `GIT_HUB_PKG_TOKEN`.
