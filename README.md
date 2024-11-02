@@ -30,7 +30,7 @@ Copy and paste one of the following commands into your terminal and hitting ENTE
 bash <(curl -so- https://raw.githubusercontent.com/heathprovost/github-quickstart/main/install.sh)
 ```
 
-## :cyclone: Hows it Work
+## :cyclone: How's It Work?
 
 The script will download and execute in one step. You will be promted to provide your name, email address, and the
 [GitHub PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) you will use 
