@@ -12,7 +12,7 @@ An x86_64 or Arm64 computer running, at a minimum, one of the following:
 - **Ubuntu 22.04 LTS**
 
 *Note: Installing inside of Virtual Machines such as [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and [OrbStack](https://orbstack.dev/)
-is supported when running Ubuntu.*
+is supported if running Ubuntu.*
 
 ## :cyclone: Installation
 
