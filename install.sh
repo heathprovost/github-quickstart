@@ -395,18 +395,19 @@ function completion_report() {
     print_as "failed" "Done!"
     printf "\n"
     print_as "important" "An error occured. Review \"$GHQS_DIR/install.log\" for more information."
-  fi
-  print_as "success" "Done!"
-  printf "\n"
-  print_as "info" "🚀 You should now be able to use git and git-credential-manager to clone a private repository."
-  printf "\n"
-  if [[ "${GHQS_ADDITIONAL_CONFIG_NEEDED:-false}" == "true" ]]
-  then
-    print_as "important" "Additional configuration needed. Run \"git-credential-manager configure\"."
-  fi
-  if [[ "${GHQS_ENV_UPDATED:-false}" == "true" ]]
-  then
-    print_as "important" "Environment was updated. Reload your current shell before proceeding."
+  else
+    print_as "success" "Done!"
+    printf "\n"
+    print_as "info" "🚀 You should now be able to use git and git-credential-manager to clone a private repository."
+    printf "\n"
+    if [[ "${GHQS_ADDITIONAL_CONFIG_NEEDED:-false}" == "true" ]]
+    then
+      print_as "important" "Additional configuration needed. Run \"git-credential-manager configure\"."
+    fi
+    if [[ "${GHQS_ENV_UPDATED:-false}" == "true" ]]
+    then
+      print_as "important" "Environment was updated. Reload your current shell before proceeding."
+    fi
   fi
 }
 
