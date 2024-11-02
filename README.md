@@ -35,7 +35,7 @@ bash <(curl -so- https://raw.githubusercontent.com/heathprovost/github-quickstar
 
 ## :cyclone: Hows it Work
 
-The script will be download and executed in one step. You will be promted to provide your name, email address, and the
+The script will download and execute in one step. You will be promted to provide your name, email address, and the
 [GitHub PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) you will use 
 to access private package registries.  
 
