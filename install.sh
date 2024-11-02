@@ -334,7 +334,7 @@ function configure() {
     log "Environment variable GIT_HUB_PKG_TOKEN is already set. Skipping token configuration"
     printf "\n"
   else
-    print_as "prompt" "Github token: "
+    print_as "prompt" "GitHub token: "
     read token
     printf "\n"
 
