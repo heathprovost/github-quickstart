@@ -1,7 +1,5 @@
 function Get-Command-Path {
-  Param (
-    [string]$command
-  )
+  param ( [string] $command )
   try {
     $path = (Get-Command $command).Source
     return $path
