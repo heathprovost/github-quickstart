@@ -41,18 +41,15 @@ function resolve_sudo() {
     # user run script using sudo, we dont support that.
     err "This script must be run **without** using \"sudo\". You will be prompted if needed."
   fi
-  if [[ "$os" != "Darwin" ]] # sudo is not needed on MacOS
+  # validate sudo session (prompting for password if necessary)
+  local sudo_session_ok=0
+  sudo -n true 2> /dev/null || sudo_session_ok=$?
+  if [[ "$sudo_session_ok" -ne 0 ]]
   then
-    # validate sudo session (prompting for password if necessary)
-    local sudo_session_ok=0
-    sudo -n true 2> /dev/null || sudo_session_ok=$?
-    if [[ "$sudo_session_ok" -ne 0 ]]
+    sudo -v
+    if [[ $? -ne 0 ]]
     then
-      sudo -v
-      if [[ $? -ne 0 ]]
-      then
-        err "Something went wrong when using \"sudo\" to elevate the current script."
-      fi
+      err "Something went wrong when using \"sudo\" to elevate the current script."
     fi
   fi
 }
