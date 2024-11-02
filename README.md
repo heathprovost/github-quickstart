@@ -6,8 +6,6 @@ This script can be used to simplify the process of cloning a private repository 
 
 ## Requirements
 
-Your computer must be running one of the following :
-
 - **Windows 11**
 - **MacOS 15 (Sequoia)**
 - **Ubuntu 22.04 LTS**
