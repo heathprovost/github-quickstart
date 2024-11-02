@@ -5,11 +5,11 @@ for the very first time.
 
 ## :cyclone: Requirements
 
-An x86_64 or Arm64 computer running one of the following:
+An x86_64 or Arm64 computer running, at a minimum, one of the following:
 
-- **Windows 10 or higher**
-- **MacOS 14 (Sonoma) or higher**
-- **Ubuntu 22.04 LTS or higher**
+- **Windows 10**
+- **MacOS 14 (Sonoma)**
+- **Ubuntu 22.04 LTS**
 
 *Note: Installing inside of Virtual Machines such as [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and [OrbStack](https://orbstack.dev/)
 is supported when running Ubuntu.*
