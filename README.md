@@ -34,7 +34,7 @@ bash <(curl -so- https://raw.githubusercontent.com/heathprovost/github-quickstar
 
 The script will download and execute in one step. You will be promted to provide your name, email address, and the
 [GitHub PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) you will use 
-to access private package registries.  
+to access private package registries if you have not already configured one.  
 
 The script will ensure that you have the latest versions of [git](https://git-scm.com/) and [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager)
 installed. Once completed you should be able to successfully clone a private repository and your shell environment will be configured so that your PAT 
