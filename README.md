@@ -14,7 +14,7 @@ A computer running one of the following:
 Both x86_64 and Arm64 hardware is supported.
 
 *Note: Installing inside of Virtual Machines such as [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and [OrbStack](https://orbstack.dev/)
-is supported, but **only** for Ubuntu.*
+is supported when running Ubuntu.*
 
 ## :cyclone: Installation
 
