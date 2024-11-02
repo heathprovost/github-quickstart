@@ -345,7 +345,7 @@ function configure() {
         log "Profile is already set to export github PAT with correct value. Skipping."
       else
         log "Profile is set to export github PAT with stale value. Updating."
-        sed -i.bak "s/^export GIT_HUB_PKG_TOKEN=.*$/export GIT_HUB_PKG_TOKEN=$token/" -- $profile
+        sed -i.bak "s/^export GIT_HUB_PKG_TOKEN=.*$/export GIT_HUB_PKG_TOKEN=$token/" $profile
       fi
     else
       log "Adding export of github PAT to profile."
