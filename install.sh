@@ -355,8 +355,8 @@ function configure() {
         echo 'export GIT_HUB_PKG_TOKEN="'$token'"'
       } | tee -a "$profile"
 
-      # tell setup to report that environment needs reload
-      return 90
+      # set flag so that completion report informs user that environment needs reload
+      GHQS_ENV_UPDATED="true"
     fi
   fi
 }
