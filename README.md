@@ -1,10 +1,10 @@
-# :shipit: GitHub Quickstart
+# :cyclone: GitHub Quickstart
 
 This script can be used to simplify the process of cloning a private repository for the very first time using 
 [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager) and a
 [GitHub HTTPS repository url](https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories#cloning-with-https-urls).
 
-## :octocat: Requirements
+## :cyclone: Requirements
 
 A computer running one of the following:
 
@@ -17,7 +17,7 @@ Both x86_64 and Arm64 hardware is supported.
 *Note: Installing inside of Virtual Machines such as [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and [OrbStack](https://orbstack.dev/)
 is supported, but **only** for Ubuntu.*
 
-## Installation
+## :cyclone: Installation
 
 Copy and paste one of the following commands into your terminal and hitting ENTER.
 
@@ -33,7 +33,7 @@ Copy and paste one of the following commands into your terminal and hitting ENTE
 bash <(curl -so- https://raw.githubusercontent.com/heathprovost/github-quickstart/main/install.sh)
 ```
 
-## Hows it Work
+## :cyclone: Hows it Work
 
 The script will be download and executed in one step. You will be promted to provide your name, email address, and the
 [GitHub PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) you will use 
