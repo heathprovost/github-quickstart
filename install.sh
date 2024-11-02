@@ -40,32 +40,18 @@ function resolve_sudo() {
   then
     # user run script using sudo, we dont support that.
     err "This script must be run **without** using \"sudo\". You will be prompted if needed."
-  else
-    # ensure we have a directory to work in
-    GHQS_DIR=~/.github-quickstart
-    if [[ ! -d "$GHQS_DIR" ]]
+  fi
+  if [[ "$os" != "Darwin" ]] # sudo is not needed on MacOS
+  then
+    # validate sudo session (prompting for password if necessary)
+    local sudo_session_ok=0
+    sudo -n true 2> /dev/null || sudo_session_ok=$?
+    if [[ "$sudo_session_ok" -ne 0 ]]
     then
-      mkdir -p "$GHQS_DIR" || err "Could not create required directory \"$GHQS_DIR\". Cannot continue."
-    fi
-    if [[ "$os" == "Darwin" ]]
-    then
-      if [[ ! -f "$GHQS_DIR/ask-sudo.sh" ]]
+      sudo -v
+      if [[ $? -ne 0 ]]
       then
-        printf "#!/bin/bash\npw=\"\$(osascript -e 'Tell application \"System Events\" to display dialog \"Enter Sudo Password:\" default answer \"\" with hidden answer' -e 'text returned of result' 2>/dev/null)\" && echo \"\$pw\"" > "$GHQS_DIR/ask-sudo.sh"
-        chmod +x "$GHQS_DIR/ask-sudo.sh"
-        export SUDO_ASKPASS="$GHQS_DIR/ask-sudo.sh"
-      fi
-    else
-      # validate sudo session (prompting for password if necessary)
-      local sudo_session_ok=0
-      sudo -n true 2> /dev/null || sudo_session_ok=$?
-      if [[ "$sudo_session_ok" -ne 0 ]]
-      then
-        sudo -v
-        if [[ $? -ne 0 ]]
-        then
-          err "Something went wrong when using \"sudo\" to elevate the current script."
-        fi
+        err "Something went wrong when using \"sudo\" to elevate the current script."
       fi
     fi
   fi
@@ -379,6 +365,7 @@ function configure() {
 # Runs all required validations before executing installation scripts
 #
 function init() {
+  GHQS_DIR=$(mktemp -d 2> /dev/null || mktemp -d -t 'github-quickstart')
   validate_commands
   validate_shell
   validate_os
