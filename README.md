@@ -1,8 +1,7 @@
 # :cyclone: GitHub Quickstart
 
-This script can be used to simplify the process of cloning a private repository for the very first time using 
-[git-credential-manager](https://github.com/git-ecosystem/git-credential-manager) and a
-[GitHub HTTPS repository url](https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories#cloning-with-https-urls).
+Simplify the process of cloning a private repository using [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager)
+for the very first time
 
 ## :cyclone: Requirements
 
