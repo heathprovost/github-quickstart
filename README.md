@@ -4,7 +4,7 @@ This script can be used to simplify the process of cloning a private repository 
 [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager) and a
 [GitHub HTTPS repository url](https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories#cloning-with-https-urls).
 
-## Requirements
+## :octocat: Requirements
 
 A computer running one of the following:
 
@@ -19,7 +19,7 @@ is supported, but **only** for Ubuntu.*
 
 ## Installation
 
-Setup is performed by simply copying and pasting one of the following commands into your terminal and hitting ENTER.
+Copy and paste one of the following commands into your terminal and hitting ENTER.
 
 ### Windows PowerShell
 
