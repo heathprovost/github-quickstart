@@ -215,7 +215,7 @@ function validate_commands() {
 
 #
 # ensure we are executing on a supported operating system
-# Currently supported: Ubuntu 22.x or higher and MacOS 15.x or higher
+# Currently supported: Ubuntu 22.x or higher and MacOS 14.x or higher
 #
 # @globals - writes GHQS_OS_NAME, GHQS_OS_VERSION, GHQS_OS_MAJOR_VERSION, GHQS_OS_ARCH, GHQS_OS_KERNEL, GHQS_OS_MACHINE
 #
@@ -224,9 +224,9 @@ function validate_os() {
   GHQS_OS_VERSION="$(lsb_release -sr 2> /dev/null || sw_vers -productVersion || echo "0.0.0")"
   GHQS_OS_MAJOR_VERSION="$(cut -d '.' -f 1 <<< "$GHQS_OS_VERSION")"
   GHQS_OS_ARCH="$(uname -m)"
-  if [[ "$GHQS_OS_NAME" == "macOS" ]]
+  if [[ "$GHQS_OS_NAME" == "macOS" ]] || [[ "$GHQS_OS_NAME" == "macOS Server" ]] || [[ "$GHQS_OS_NAME" == "Mac OS X" ]]
   then
-    # uppercase macOS for consistency
+    # normalize to just MacOS for consistency
     GHQS_OS_NAME="MacOS"
   fi
   if [[ "$GHQS_OS_ARCH" == "arm64" ]]
@@ -249,7 +249,7 @@ function validate_os() {
   if [[ "$GHQS_OS_NAME" == "Ubuntu" ]] && [[ $GHQS_OS_MAJOR_VERSION -ge 22 ]]
   then
     GHQS_OS_KERNEL="Linux"
-  elif [[ "$GHQS_OS_NAME" == "MacOS" ]] && [[ $GHQS_OS_MAJOR_VERSION -ge 15 ]]
+  elif [[ "$GHQS_OS_NAME" == "MacOS" ]] && [[ $GHQS_OS_MAJOR_VERSION -ge 14 ]]
   then
     GHQS_OS_KERNEL="Darwin"
   else

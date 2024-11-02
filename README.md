@@ -7,9 +7,9 @@ for the very first time.
 
 An x86_64 or Arm64 computer running one of the following:
 
-- **Windows 11**
-- **MacOS 15 (Sequoia)**
-- **Ubuntu 22.04 LTS**
+- **Windows 10 or higher**
+- **MacOS 14 (Sonoma) or higher**
+- **Ubuntu 22.04 LTS or higher**
 
 *Note: Installing inside of Virtual Machines such as [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and [OrbStack](https://orbstack.dev/)
 is supported when running Ubuntu.*
