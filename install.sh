@@ -350,7 +350,7 @@ function configure() {
   email=${email_input:-$email}
   GHQS_GIT_USER_EMAIL=$(trim $email)
 
-  if [[ -n "${token:-}" ]] && [[ $(cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=" || true) ]]
+  if [[ -n "${token:-}" ]] && cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=";
   then
     # if token is already set AND it is set by the profile prompt with default
     print_as "prompt" "GitHub token [$token]: "
