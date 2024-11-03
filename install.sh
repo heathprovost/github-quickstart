@@ -376,15 +376,15 @@ function configure() {
   log "Profile is \"$profile\"."
   if cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN="; then
     log "Profile is already set to export github PAT. Confirming value is correct."
-    if cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=$(trim token)"; then
+    if cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=$token"; then
       log "Profile is already set to export github PAT with correct value. Skipping."
     else
       log "Profile is set to export github PAT with stale value. Updating."
-      sed -i.bak "s/^export GIT_HUB_PKG_TOKEN=.*$/export GIT_HUB_PKG_TOKEN=$(trim token)/" $profile
+      sed -i.bak "s/^export GIT_HUB_PKG_TOKEN=.*$/export GIT_HUB_PKG_TOKEN=$token/" $profile
     fi
   else
     log "Adding export of github PAT to profile."
-    printf '\n# github token for private registries\nexport GIT_HUB_PKG_TOKEN="'$(trim token)'"\n' >> "$profile"
+    printf "\n# github token for private registries\nexport GIT_HUB_PKG_TOKEN=$token\n" >> "$profile"
     # set flag so that completion report informs user that environment needs reload
     GHQS_ENV_UPDATED="true"
   fi
