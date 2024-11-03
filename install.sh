@@ -324,7 +324,7 @@ function configure() {
   local email_input
   local email="$(git config --global user.email 2> /dev/null || true)"
   local token_input
-  local token="${GIT_HUB_PKG_TOKEN:-}"
+  local token=
   local profile="$GHQS_PROFILE_FILE"
 
   print_as "info" "Responses will be used to configure git and git-credential-manager."
@@ -350,25 +350,27 @@ function configure() {
   email=${email_input:-$email}
   GHQS_GIT_USER_EMAIL=$(trim $email)
 
-  if [[ -n "${token:-}" ]] && cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=";
+  # if token is not already exported but it IS already set in users profile then capture it
+  if [[ -z "${token:-}" ]] && cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=";
   then
-    # if token is already set AND it is set by the profile prompt with default
-    print_as "prompt" "GitHub token [$token]: "
-    read token_input
-    token=${token_input:-$token}
-    printf "\n"
-  elif [[ -n "${token:-}" ]]
+    token="$(cat "$profile" | sed -n "s/^export GIT_HUB_PKG_TOKEN=\(.*\)$/\1/p")"
+  fi
+
+  if [[ -n "${GIT_HUB_PKG_TOKEN:-}" ]] && [[ -z "${token:-}" ]]
   then
-    # token was set by some other means besides user's profile, do not try and overwrite it, just skip
+    # token is already exported, but was not set from the users profile. Do not try and overwrite it, just skip
     log "Environment variable GIT_HUB_PKG_TOKEN is already set. Skipping token configuration"
     printf "\n"
     return 0
+  elif [[ -n "${token:-}" ]]
+  then
+    print_as "prompt" "GitHub token [$token]: "
   else
-    # token is not set, just prompt directly
     print_as "prompt" "GitHub token: "
-    read token
-    printf "\n"
   fi
+  read token_input
+  token=${token_input:-$token}
+  printf "\n"
 
   # if we get this far update the profile if needed
   log "Profile is \"$profile\"."
