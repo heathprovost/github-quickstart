@@ -395,7 +395,7 @@ function completion_report() {
   else
     print_as "success" "Done!"
     printf "\n"
-    print_as "info" "🚀 You should now be able to use git and git-credential-manager to clone a private repository."
+    print_as "info" "🚀 You should now be able to clone a private repository."
     printf "\n"
     if [[ "${GHQS_ADDITIONAL_CONFIG_NEEDED:-false}" == "true" ]]
     then

@@ -52,7 +52,7 @@ function Add-GitConfig {
   # dumb workaround for rocket emoji
   $EmojiIcon = [System.Convert]::toInt32("1F680", 16)
   Write-host -NoNewline ([System.Char]::ConvertFromUtf32($EmojiIcon))
-  Write-host -ForegroundColor Cyan ' You should now be able to use git and git-credential-manager to clone a private repository.'
+  Write-host -ForegroundColor Cyan ' You should now be able to clone a private repository.'
 }
 
 Clear-Host
