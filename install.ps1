@@ -1,4 +1,26 @@
 #
+# Prompts user for input with provided default value
+#
+function Read-HostWithDefault {
+  param (
+    [string] $prompt,
+    [string] $defaultValue = $null
+  )
+  if ($defaultValue -eq $null) {
+    Write-Host -ForegroundColor Cyan -NoNewline "${prompt}: "
+  } else {
+    Write-Host -ForegroundColor Cyan -NoNewline "${prompt}: ["
+    Write-Host -NoNewline "$defaultValue"
+    Write-Host -ForegroundColor Cyan -NoNewline ']: '
+  }
+  $input = Read-Host
+  if ([string]::IsNullOrEmpty($input)) {
+    $input = $defaultValue
+  }
+  return $input
+}
+
+#
 # Installs git and git-credential-manager if not installed
 #
 function Install-Git {
@@ -29,28 +51,30 @@ function Install-Git {
 function Add-GitConfig {
   $name = (git config --global user.name)
   $email = (git config --global user.email)
-  $token = $null
+  $machine_token=([Environment]::GetEnvironmentVariable("GIT_HUB_PKG_TOKEN", [System.EnvironmentVariableTarget]::Machine))
+  $token = ([Environment]::GetEnvironmentVariable("GIT_HUB_PKG_TOKEN", [System.EnvironmentVariableTarget]::User))
   Write-host -ForegroundColor Cyan 'Responses will be used to configure git and git-credential-manager.'
   Write-host ''
 
-  $name_input = $(Write-Host -ForegroundColor Cyan -NoNewline 'Full name: '; Read-Host)
-  if ($name_input -ne "$name") {
-    git config --global user.name "$name_input"
+  $name_input = Read-HostWithDefault 'Full name' $name
+  if ($name_input -ne $null -and $name_input -ne "$name") {
+    git config --global user.name "$name_input" | out-null
   }
 
-  $email_input = $(Write-Host -ForegroundColor Cyan -NoNewline 'Email address: '; Read-Host)
-  if ("$email_input" -ne "$email") {
-    git config --global user.email "$email_input"
+  $email_input = Read-HostWithDefault 'Email address' $email
+  if ($email_input -ne $null -and $email_input -ne "$email") {
+    git config --global user.email "$email_input" | out-null
   }
 
-  # only prompt for token if not already set
-  if (-not (Test-Path 'env:GIT_HUB_PKG_TOKEN')) {
-    $token = $(Write-Host -ForegroundColor Cyan -NoNewline 'GitHub token: '; Read-Host)
-    [Environment]::SetEnvironmentVariable("GIT_HUB_PKG_TOKEN", "$token", [System.EnvironmentVariableTarget]::User)
+  # if a token is set at the machine level, do not prompt for it
+  if ($machine_token -eq $null) {
+    $token_input = Read-HostWithDefault 'GitHub token' $token
+    if ($token_input -ne $null -and $token_input -ne "$token") {
+      [Environment]::SetEnvironmentVariable("GIT_HUB_PKG_TOKEN", "$token_input", [System.EnvironmentVariableTarget]::User)
+    }
   }
 
   Write-host ''
-
   # dumb workaround for rocket emoji
   $EmojiIcon = [System.Convert]::toInt32("1F680", 16)
   Write-host -NoNewline ([System.Char]::ConvertFromUtf32($EmojiIcon))
