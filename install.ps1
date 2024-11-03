@@ -27,18 +27,20 @@ function Install-Git {
 # note: git installs with credential.helper set to use gcm by default, so it is not set here
 #
 function Add-GitConfig {
+  $name = (git config --global user.name)
+  $email = (git config --global user.email)
   $token = $null
   Write-host -ForegroundColor Cyan 'Responses will be used to configure git and git-credential-manager.'
   Write-host ''
 
-  $name = $(Write-Host -ForegroundColor Cyan -NoNewline 'Full name: '; Read-Host)
-  if ((git config --global user.name) -ne"$name") {
-    git config --global user.name "$name"
+  $name_input = $(Write-Host -ForegroundColor Cyan -NoNewline 'Full name: '; Read-Host)
+  if ($name_input -ne "$name") {
+    git config --global user.name "$name_input"
   }
 
-  $email = $(Write-Host -ForegroundColor Cyan -NoNewline 'Email address: '; Read-Host)
-  if ((git config --global user.email) -ne "$email") {
-    git config --global user.email "$email"
+  $email_input = $(Write-Host -ForegroundColor Cyan -NoNewline 'Email address: '; Read-Host)
+  if ("$email_input" -ne "$email") {
+    git config --global user.email "$email_input"
   }
 
   # only prompt for token if not already set

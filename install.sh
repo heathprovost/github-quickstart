@@ -62,6 +62,7 @@ function resolve_sudo() {
 # @param string $2 - the message to print
 #
 function print_as() {
+  local msg
   local red='\033[0;31m'
   local green='\033[0;32m'
   local yellow='\033[0;33m'
@@ -94,8 +95,16 @@ function print_as() {
   eval "glyph=\${${msgtype}_glyph}"
   eval "color=\${${msgtype}_color}"
 
-  # use sed to highlight quoted substrings in $2 and store as msg
-  local msg=$(echo -n -e "$(echo -e -n "$2" | sed -e "s/'\([^'\\\"]*\)'/\\${blue}\1\\${reset}\\${color}/g")")
+  if echo -e -n "$2" | grep -q "[][]"; then
+    # use sed to show bracketed substrings in default
+    msg=$(echo -n -e "$(echo -e -n "$2" | sed -e "s/\(\\[\)\([^]]*\)\(\\]\)/\1\\${default}\2\\${reset}\\${color}\3/g")")
+  elif echo -e -n "$2" | grep -q "\""; then
+    # use sed to show double quoted substrings in blue
+    msg=$(echo -e -n "$(echo -e -n "$2" | sed -e "s/\(\\\"\)\([^\\\"]*\)\(\\\"\)/\1\\${blue}\2\\${reset}\\${color}\3/g")")
+  else
+    # just assign to variable
+    msg="$2"
+  fi
 
   # for prompts dont emit a linebreak
   if [[ "$msgtype" = "prompt" ]]
@@ -310,46 +319,72 @@ function prepare_log() {
 # @globals - reads GHQS_PROFILE_FILE, writes GHQS_GIT_USER_NAME, GHQS__GIT_USER_EMAIL
 #
 function configure() {
-  local name
-  local email
-  local token
+  local name_input
+  local name="$(git config --global user.name 2> /dev/null || true)"
+  local email_input
+  local email="$(git config --global user.email 2> /dev/null || true)"
+  local token_input
+  local token="${GIT_HUB_PKG_TOKEN:-}"
   local profile="$GHQS_PROFILE_FILE"
 
   print_as "info" "Responses will be used to configure git and git-credential-manager."
   printf "\n"
-  
-  print_as "prompt" "Full name: "
-  read name
+
+  if [[ -n "${name:-}" ]]
+  then
+    print_as "prompt" "Full name [$name]: "
+  else
+    print_as "prompt" "Full name: "
+  fi
+  read name_input
+  name=${name_input:-$name}
   GHQS_GIT_USER_NAME=$(trim $name)
 
-  print_as "prompt" "Email address: "
-  read email
+  if [[ -n "${email:-}" ]]
+  then
+    print_as "prompt" "Email address [$email]: "
+  else
+    print_as "prompt" "Email address: "
+  fi
+  read email_input
+  email=${email_input:-$email}
   GHQS_GIT_USER_EMAIL=$(trim $email)
 
-  if [[ -n "${GIT_HUB_PKG_TOKEN:-}" ]]
+  if [[ -n "${token:-}" ]] && [[ "$(cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=")" ]]
   then
+    # if token is already set AND it is set by the profile prompt with default
+    print_as "prompt" "GitHub token [$token]: "
+    read token_input
+    token=${token_input:-$token}
+    printf "\n"
+  elif [[ -n "${token:-}" ]]
+  then
+    # token was set by some other means besides user's profile, do not try and overwrite it, just skip
     log "Environment variable GIT_HUB_PKG_TOKEN is already set. Skipping token configuration"
     printf "\n"
+    return 0
   else
+    # token is not set, just prompt directly
     print_as "prompt" "GitHub token: "
     read token
     printf "\n"
+  fi
 
-    log "Profile is \"$profile\"."
-    if cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN="; then
-      log "Profile is already set to export github PAT. Confirming value is correct."
-      if cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=$token"; then
-        log "Profile is already set to export github PAT with correct value. Skipping."
-      else
-        log "Profile is set to export github PAT with stale value. Updating."
-        sed -i.bak "s/^export GIT_HUB_PKG_TOKEN=.*$/export GIT_HUB_PKG_TOKEN=$token/" $profile
-      fi
+  # if we get this far update the profile if needed
+  log "Profile is \"$profile\"."
+  if cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN="; then
+    log "Profile is already set to export github PAT. Confirming value is correct."
+    if cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=$(trim token)"; then
+      log "Profile is already set to export github PAT with correct value. Skipping."
     else
-      log "Adding export of github PAT to profile."
-      printf '\n# github token for private registries\nexport GIT_HUB_PKG_TOKEN="'$token'"\n' >> "$profile"
-      # set flag so that completion report informs user that environment needs reload
-      GHQS_ENV_UPDATED="true"
+      log "Profile is set to export github PAT with stale value. Updating."
+      sed -i.bak "s/^export GIT_HUB_PKG_TOKEN=.*$/export GIT_HUB_PKG_TOKEN=$(trim token)/" $profile
     fi
+  else
+    log "Adding export of github PAT to profile."
+    printf '\n# github token for private registries\nexport GIT_HUB_PKG_TOKEN="'$(trim token)'"\n' >> "$profile"
+    # set flag so that completion report informs user that environment needs reload
+    GHQS_ENV_UPDATED="true"
   fi
 }
 
