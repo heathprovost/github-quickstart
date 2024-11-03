@@ -478,7 +478,7 @@ function install_git-config() {
   local gcm_wsl2_bin="/mnt/c/Program\ Files/git/mingw64/bin/git-credential-manager.exe"
   local i
 
-  # if we did not find the GCM executable we might be on WSL2
+  # if we did not find the GCM executable (it should be on the system path by default) we might be on WSL2
   if [[ -z "${gcm_bin:-}" ]] && [[ -d "/run/WSL" ]] && [[ -f "${gcm_wsl2_bin//[\\]/}" ]] # remove backslashes from variable value
   then
     # we are in a wsl2 vm on windows and the gcm binary is available in its default location
@@ -500,6 +500,11 @@ function install_git-config() {
   # populate current with the current values read from git config
   for (( i=0; i<${#keys[@]}; i++ ))
   do
+    if [[ "${keys[$i]}" == "credential.helper" ]] && [[ "$GHQS_OS_NAME" == "MacOS" ]]
+    then
+      # dont set credential.helper on MacOS, it is set correctly by default
+      continue
+    fi
     if [[ "$(git config --global "${keys[$i]}" || true)" != "${values[$i]}" ]]
     then
       git config --global --replace-all "${keys[$i]}" "${values[$i]}"
