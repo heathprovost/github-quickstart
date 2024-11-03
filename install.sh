@@ -346,12 +346,7 @@ function configure() {
       fi
     else
       log "Adding export of github PAT to profile."
-      {
-        echo ''
-        echo '# github token for private registries'
-        echo 'export GIT_HUB_PKG_TOKEN="'$token'"'
-      } | tee -a "$profile"
-
+      printf '\n# github token for private registries\nexport GIT_HUB_PKG_TOKEN="'$token'"\n' >> "$profile"
       # set flag so that completion report informs user that environment needs reload
       GHQS_ENV_UPDATED="true"
     fi
