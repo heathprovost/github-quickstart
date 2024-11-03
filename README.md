@@ -31,7 +31,7 @@ bash <(curl -so- https://raw.githubusercontent.com/heathprovost/github-quickstar
 ```
 
 That's it. Once installed you should be able to successfully clone a GitHub private repo using an 
-[HTTPS url](https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories#cloning-with-https-urls).
+[HTTPS Url](https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories#cloning-with-https-urls).
 
 ## :cyclone: How's It Work?
 
