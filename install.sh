@@ -14,90 +14,19 @@ set -euo pipefail
 # Generic Utility Functions (only generic dependencies/globals)
 #=============================================================================#
 
-# declare maps for colors and styles
-declare -A fgcolor bgcolor style
-
 #
-# Format a color number or style into a basic 16 color escape code.
+# generate global variables to use for generating ansi colors
 #
-# @param integer $1 - The color number to format.
-#
-function basic_format {
-  printf "\033[%sm" "$1"
-}
-
-#
-# Format a color number into an extended 256 color foreground escape code.
-#
-# @param integer $1 - The color number to format.
-#
-function fg_format_256 {
-  # 256 fgcolor color
-  printf "\033[38;5;%sm" "$1"
-}
-
-#
-# Format a color number into an extended 256 color background escape code.
-#
-# @param integer $1 - The color number to format.
-#
-function bg_format_256 {
-  # 256 bgcolor color
-  printf "\033[48;5;%sm" "$1"
-}
-
-#
-# builds the fgcolor/bgcolor/style maps.
-#
-function build_maps {
-  # Names and corresponding base code number
-  local colornum
-  declare -A colornum=(
-    [black]=0
-    [red]=1
-    [green]=2
-    [yellow]=3
-    [blue]=4
-    [magenta]=5
-    [cyan]=6
-    [white]=7
-    )
-  local cname
-  for cname in "${!colornum[@]}"; do
-    fgcolor[$cname]="$(basic_format $((30 + ${colornum[$cname]})))"
-    fgcolor[light$cname]="$(basic_format $((90 + ${colornum[$cname]})))"
-    bgcolor[$cname]="$(basic_format $((40 + ${colornum[$cname]})))"
-    bgcolor[light$cname]="$(basic_format $((100 + ${colornum[$cname]})))"
-  done
-  fgcolor[reset]="$(basic_format 39)"
-  bgcolor[reset]="$(basic_format 49)"
-
-  # 256 colors.
-  local cnum
-  for cnum in {0..255}; do
-    fgcolor[$cnum]="$(fg_format_256 "$cnum")"
-    bgcolor[$cnum]="$(bg_format_256 "$cnum")"
-  done
-
-  # Map of base code -> style name
-  local stylenum
-
-  declare -A stylenum=(
-    [reset]=0
-    [bright]=1
-    [dim]=2
-    [italic]=3
-    [underline]=4
-    [flash]=5
-    [highlight]=7
-    [normal]=22
-  )
-
-  local sname
-
-  for sname in "${!stylenum[@]}"; do
-    style[$sname]="$(basic_format "${stylenum[$sname]}")"
-  done
+function generate_ansi_colors {
+  ansi_black="$(printf "\033[%sm" "30")"
+  ansi_red="$(printf "\033[%sm" "31")"
+  ansi_green="$(printf "\033[%sm" "32")"
+  ansi_yellow="$(printf "\033[%sm" "33")"
+  ansi_blue="$(printf "\033[%sm" "34")"
+  ansi_magenta="$(printf "\033[%sm" "35")"
+  ansi_cyan="$(printf "\033[%sm" "36")"
+  ansi_white="$(printf "\033[%sm" "37")"
+  ansi_reset="$(printf "\033[%sm" "39")"
 }
 
 #
@@ -239,7 +168,7 @@ function err() {
   local error_message="${1:-An unknown error occurred.}"
   local exit_code="${2:-1}"
 
-  printf "${fgcolor[red]}${error_message}${fgcolor[reset]}\n"
+  printf "${ansi_red}${error_message}${ansi_reset}\n"
   exit $exit_code
 }
 
@@ -319,7 +248,7 @@ function install() {
 
   if [[ $exit_code -eq 0 ]] || [[ $exit_code -eq 90 ]]
   then
-    printf "${fgcolor[green]}✓${fgcolor[reset]} Installing $command\n"
+    printf "${ansi_green}✓${ansi_reset} Installing $command\n"
     if [[ $exit_code -eq 90 ]]
     then
       # 90 means environment will need to be reloaded, so this still successful run. Just set flag to output correct message later
@@ -327,7 +256,7 @@ function install() {
     fi
   else
     GHQS_INSTALLER_FAILED="true"
-    printf "${fgcolor[red]}✗${fgcolor[reset]} Installing $command\n"
+    printf "${ansi_red}✗${ansi_reset} Installing $command\n"
   fi
 
   # Restore the cursor
@@ -406,8 +335,8 @@ function cleanup() {
   unset -f "err resolve_sudo install validate_commands validate_os validate_shell prepare_log cleanup init completion_report configure setup"
   # unset installer functions
   unset -f "install_git install_git-config"
-  # unset all color map variables
-  unset "${!fgcolor@}" "${!bgcolor@}" "${!style@}"
+  # unset all ansi color variables
+  unset "${!ansi_@}"
   # unset all variables starting with GHQS_
   unset "${!GHQS_@}"
 }
@@ -431,13 +360,13 @@ function init() {
 function completion_report() {
   if [[ "${GHQS_INSTALLER_FAILED:-false}" == "true" ]]
   then
-    printf "${fgcolor[red]}✗${fgcolor[reset]} Done!\n\n"
-    printf "${fgcolor[yellow]}An error occured. Review \"${fgcolor[reset]}${fgcolor[blue]}$GHQS_LOG${fgcolor[reset]}${fgcolor[yellow]}\" for more information.${fgcolor[reset]}\n"
+    printf "${ansi_red}✗${ansi_reset} Done!\n\n"
+    printf "${ansi_yellow}An error occured. Review \"${ansi_reset}${ansi_blue}$GHQS_LOG${ansi_reset}${ansi_yellow}\" for more information.${ansi_reset}\n"
   else
-    printf "${fgcolor[green]}✓${fgcolor[reset]} Done!\n\n"
+    printf "${ansi_green}✓${ansi_reset} Done!\n\n"
     if [[ "${GHQS_ENV_UPDATED:-false}" == "true" ]]
     then
-      printf "${fgcolor[yellow]}Environment was updated. Reload your current shell before proceeding.${fgcolor[reset]}\n"
+      printf "${ansi_yellow}Environment was updated. Reload your current shell before proceeding.${ansi_reset}\n"
     fi
   fi
 }
@@ -457,13 +386,13 @@ function configure() {
   local token_input
   local token
 
-  printf "${fgcolor[cyan]}Responses will be used to configure GitHub credentials.${fgcolor[reset]}\n\n"
+  printf "${ansi_cyan}Responses will be used to configure GitHub credentials.${ansi_reset}\n\n"
 
   if [[ -n "${name:-}" ]]
   then
-    printf "${fgcolor[cyan]}Full name [${fgcolor[reset]}${name}${fgcolor[cyan]}]: ${fgcolor[reset]}"
+    printf "${ansi_cyan}Full name [${ansi_reset}${name}${ansi_cyan}]: ${ansi_reset}"
   else
-    printf "${fgcolor[cyan]}Full name: ${fgcolor[reset]}"
+    printf "${ansi_cyan}Full name: ${ansi_reset}"
   fi
   read name_input
   name=${name_input:-$name}
@@ -471,9 +400,9 @@ function configure() {
 
   if [[ -n "${email:-}" ]]
   then
-    printf "${fgcolor[cyan]}Email address [${fgcolor[reset]}${email}${fgcolor[cyan]}]: ${fgcolor[reset]}"
+    printf "${ansi_cyan}Email address [${ansi_reset}${email}${ansi_cyan}]: ${ansi_reset}"
   else
-    printf "${fgcolor[cyan]}Email address: ${fgcolor[reset]}"
+    printf "${ansi_cyan}Email address: ${ansi_reset}"
   fi
   read email_input
   email=${email_input:-$email}
@@ -496,9 +425,9 @@ function configure() {
 
   if [[ -n "${token:-}" ]]
   then
-    printf "${fgcolor[cyan]}GitHub token [${fgcolor[reset]}${token}${fgcolor[cyan]}]: ${fgcolor[reset]}"
+    printf "${ansi_cyan}GitHub token [${ansi_reset}${token}${ansi_cyan}]: ${ansi_reset}"
   else
-    printf "${fgcolor[cyan]}GitHub token: ${fgcolor[reset]}"
+    printf "${ansi_cyan}GitHub token: ${ansi_reset}"
   fi
   read token_input
   token=${token_input:-$token}
@@ -631,7 +560,7 @@ function setup() {
   printf "$(completion_report && cleanup)\n"
 }
 
-build_maps
+generate_ansi_colors
 resolve_sudo
 setup
 
