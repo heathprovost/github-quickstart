@@ -11,18 +11,236 @@
 set -euo pipefail
 
 #=============================================================================#
-# Utility Functions
+# Generic Utility Functions (only generic dependencies/globals)
+#=============================================================================#
+
+# declare maps for colors and styles
+declare -A fgcolor bgcolor style
+
+#
+# Format a color number or style into a basic 16 color escape code.
+#
+# @param integer $1 - The color number to format.
+#
+function basic_format {
+  printf "\033[%sm" "$1"
+}
+
+#
+# Format a color number into an extended 256 color foreground escape code.
+#
+# @param integer $1 - The color number to format.
+#
+function fg_format_256 {
+  # 256 fgcolor color
+  printf "\033[38;5;%sm" "$1"
+}
+
+#
+# Format a color number into an extended 256 color background escape code.
+#
+# @param integer $1 - The color number to format.
+#
+function bg_format_256 {
+  # 256 bgcolor color
+  printf "\033[48;5;%sm" "$1"
+}
+
+#
+# builds the fgcolor/bgcolor/style maps.
+#
+function build_maps {
+  # Names and corresponding base code number
+  local colornum
+  declare -A colornum=(
+    [black]=0
+    [red]=1
+    [green]=2
+    [yellow]=3
+    [blue]=4
+    [magenta]=5
+    [cyan]=6
+    [white]=7
+    )
+  local cname
+  for cname in "${!colornum[@]}"; do
+    fgcolor[$cname]="$(basic_format $((30 + ${colornum[$cname]})))"
+    fgcolor[light$cname]="$(basic_format $((90 + ${colornum[$cname]})))"
+    bgcolor[$cname]="$(basic_format $((40 + ${colornum[$cname]})))"
+    bgcolor[light$cname]="$(basic_format $((100 + ${colornum[$cname]})))"
+  done
+  fgcolor[reset]="$(basic_format 39)"
+  bgcolor[reset]="$(basic_format 49)"
+
+  # 256 colors.
+  local cnum
+  for cnum in {0..255}; do
+    fgcolor[$cnum]="$(fg_format_256 "$cnum")"
+    bgcolor[$cnum]="$(bg_format_256 "$cnum")"
+  done
+
+  # Map of base code -> style name
+  local stylenum
+
+  declare -A stylenum=(
+    [reset]=0
+    [bright]=1
+    [dim]=2
+    [italic]=3
+    [underline]=4
+    [flash]=5
+    [highlight]=7
+    [normal]=22
+  )
+
+  local sname
+
+  for sname in "${!stylenum[@]}"; do
+    style[$sname]="$(basic_format "${stylenum[$sname]}")"
+  done
+}
+
+#
+# logs to the log file specified by the environment variable GHQS_LOG, otherwise logs to stdout
+#
+# @param string(s) $@ - the message(s) to log (expands to all arguments)
+#
+function log() {
+  if [[ -n "${GHQS_LOG:-}" ]]
+  then
+    echo -e "$@" >> "$GHQS_LOG" 2>&1
+  else
+    echo -e "$@"
+  fi
+}
+
+#
+# returns the architecture of the current system, normalizing the output to correct for common aliases
+#
+function get_arch() {
+  local arch="$(uname -m)"
+  if [[ "$arch" == "amd64" ]]
+  then
+    arch="x86_64"
+  fi
+  if [[ "$arch" == "arm64" ]]
+  then
+    arch="aarch64"
+  fi
+  echo "$arch"
+}
+
+#
+# returns the name of the kernel for the current system
+#
+function get_kernel() {
+  local kernel="$(uname -s)"
+  echo "$kernel"
+}
+
+#
+# returns the name of the current operating system
+#
+function get_os() {
+  local os="$(lsb_release -si 2> /dev/null || sw_vers -productName || echo -n "Unknown")"
+  if [[ "$os" == "macOS" ]] || [[ "$os" == "macOS Server" ]] || [[ "$os" == "Mac OS X" ]]
+  then
+    os="MacOS"
+  fi
+  echo "$os"
+}
+
+#
+# returns the major version number of the current operating system (e.g. 10.15.7 -> 10)
+#
+function get_os_version() {
+  local version_string="$(get_os_version_string)"
+  local version="$(cut -d '.' -f 1 <<< "$version_string")"
+  echo "$version"
+}
+
+#
+# returns the full version number of the current operating system (e.g. 10.15.7)
+#
+function get_os_version_string() {
+  lsb_release -sr 2> /dev/null || sw_vers -productVersion || echo "0.0.0"
+}
+
+#
+# returns the path to the current user's profile based on their SHELL, or an empty string. Supports bash and zsh only.
+#
+# @globals - reads SHELL, HOME
+#
+function get_profile_path() {
+  if [[ $SHELL == */bash ]]
+  then
+    if [[ -f "$HOME/.bashrc" ]]
+    then
+      echo "$HOME/.bashrc"
+    elif [[ -f "$HOME/.bash_profile" ]]
+    then
+      echo "$HOME/.bash_profile"
+    fi
+  elif [[ $SHELL == */zsh ]]
+  then
+    if [[ -f "$HOME/.zshrc" ]]
+    then
+      echo "$HOME/.zshrc"
+    elif [[ -f "$HOME/.zprofile" ]]
+    then
+      echo "$HOME/.zprofile"
+    fi
+  fi
+}
+
+#
+# creates a temporary directory in ./tmp/$1 and sets it as the cwd
+#
+# @param string $1 - the name of the temporary directory to create and cd into
+#
+function pushd_tmp() {
+  local tmpdir="./tmp/$1"
+  if [[ -d "$tmpdir" ]]
+  then
+    log "Removing existing temp directory '$tmpdir'"
+    command rm -rf $tmpdir
+  fi
+  log "Using temp directory '$tmpdir'"
+  command mkdir -p "$tmpdir"
+  command pushd "$tmpdir" > /dev/null
+}
+
+#
+# returns to the previous cwd and deletes the temporary directory created by push_tmpdir
+#
+function popd_tmp() {
+  local tmpdir="$(command dirs +0)"
+  if ! echo "$tmpdir" | grep -q '/tmp/'
+  then
+    log "Directory '$tmpdir' on top of stack does not match the expected pattern '*/tmp/*'. Cannot continue."
+    exit 1
+  fi
+  log "Removing temp directory '$tmpdir'"
+  command popd > /dev/null
+  command rm -rf $tmpdir
+}
+
+#=============================================================================#
+# Utility Functions (these have dependencies on other functions/globals)
 #=============================================================================#
 
 #
-# report an error and exit
+# report an error and exit with an error code
 #
 # @param string $1 - The error message to display. Defaults to "An unknown error occurred."
 # @param integer $2 - The exit code to set. Defaults to 1
 #
 function err() {
-  print_as "error" "${1:-An unknown error occurred.}"
-  exit ${2:-1}
+  local error_message="${1:-An unknown error occurred.}"
+  local exit_code="${2:-1}"
+
+  printf "${fgcolor[red]}${error_message}${fgcolor[reset]}\n"
+  exit $exit_code
 }
 
 #
@@ -31,7 +249,7 @@ function err() {
 # @globals - reads SUDO_USER
 #
 function resolve_sudo() {
-  local os="$(uname -o 2> /dev/null || true)"
+  local kernel="$(get_kernel)"
   if [[ ! -x "/usr/bin/sudo" ]]
   then
     err "This script requires \"sudo\" to be installed."
@@ -40,102 +258,19 @@ function resolve_sudo() {
   then
     # user run script using sudo, we dont support that.
     err "This script must be run **without** using \"sudo\". You will be prompted if needed."
-  fi
-  # validate sudo session (prompting for password if necessary)
-  local sudo_session_ok=0
-  sudo -n true 2> /dev/null || sudo_session_ok=$?
-  if [[ "$sudo_session_ok" -ne 0 ]]
-  then
-    sudo -v
-    if [[ $? -ne 0 ]]
+  else
+    # validate sudo session (prompting for password if necessary)
+    local sudo_session_ok=0
+    sudo -n true 2> /dev/null || sudo_session_ok=$?
+    if [[ "$sudo_session_ok" -ne 0 ]]
     then
-      err "Something went wrong when using \"sudo\" to elevate the current script."
+      sudo -v
+      if [[ $? -ne 0 ]]
+      then
+        err "Something went wrong when using \"sudo\" to elevate the current script."
+      fi
     fi
   fi
-}
-
-#
-# prints a message to the console. Each type is display using a custom glyph and/or color
-# single quoted substrings are highlighted in blue when detected
-#
-# @param string $1 - the message type, one of "success", "skipped", "failed", "error", "important", "prompt", "info"
-# @param string $2 - the message to print
-#
-function print_as() {
-  local msg
-  local red='\033[0;31m'
-  local green='\033[0;32m'
-  local yellow='\033[0;33m'
-  local blue='\033[0;34m'
-  local cyan='\033[0;36m'
-  local default='\033[0;39m'
-  local reset='\033[0m'
-  local success_glyph="${green}✓${reset} "
-  local success_color="$default"
-  local skipped_glyph="${blue}✗${reset} "
-  local skipped_color="$default"
-  local failed_glyph="${red}✗${reset} "
-  local failed_color="$default"
-  local error_glyph="${red}✗${reset} "
-  local error_color="$red"
-  local important_glyph=""
-  local important_color="$yellow"
-  local prompt_glyph=""
-  local prompt_color="$cyan"
-  local info_glyph=""
-  local info_color="$cyan"
-  local nl="\n"
-
-  # store $1 as the msgtype
-  local msgtype=$1
-  local glyph
-  local color
-
-  # use eval to assign reference vars
-  eval "glyph=\${${msgtype}_glyph}"
-  eval "color=\${${msgtype}_color}"
-
-  if echo -e -n "$2" | grep -q "[][]"; then
-    # use sed to show bracketed substrings in default
-    msg=$(echo -n -e "$(echo -e -n "$2" | sed -e "s/\(\\[\)\([^]]*\)\(\\]\)/\1\\${default}\2\\${reset}\\${color}\3/g")")
-  elif echo -e -n "$2" | grep -q "\""; then
-    # use sed to show double quoted substrings in blue
-    msg=$(echo -e -n "$(echo -e -n "$2" | sed -e "s/\(\\\"\)\([^\\\"]*\)\(\\\"\)/\1\\${blue}\2\\${reset}\\${color}\3/g")")
-  else
-    # just assign to variable
-    msg="$2"
-  fi
-
-  # for prompts dont emit a linebreak
-  if [[ "$msgtype" = "prompt" ]]
-  then
-    nl=""
-  fi
-
-  printf "${glyph}${color}${msg}${reset}${nl}"
-}
-
-#
-# log to the log file
-#
-# @param string(s) $@ - the message(s) to log (expands to all arguments)
-#
-function log() {
-  printf "$@\n" >> "$GHQS_DIR/install.log" 2>&1
-}
-
-#
-# return its arguments as a single string with leading and trailing space trimmed
-#
-# @param string(s) $*- The string(s) to trim. Arguments are merged into a single string
-#
-function trim() {
-  local var="$*"
-  # remove leading whitespace characters
-  var="${var#"${var%%[![:space:]]*}"}"
-  # remove trailing whitespace characters
-  var="${var%"${var##*[![:space:]]}"}"
-  printf '%s' "$var"
 }
 
 #
@@ -143,12 +278,12 @@ function trim() {
 #
 # @param string $1 - the installer command to run
 # @param string $2 - the title to show next the spinner
-# @globals - reads GHQS_DIR, writes GHQS_ENV_UPDATED, GHQS_ADDITIONAL_CONFIG_NEEDED, GHQS_INSTALLER_FAILED
+# @globals - reads GHQS_LOG, writes GHQS_ENV_UPDATED, GHQS_INSTALLER_FAILED
 #
 function install() {
-  command="$1"
+  local command="$1"
   shift
-  install_$command $@ >> "$GHQS_DIR/install.log" 2>&1 &
+  install_$command $@ >> "$GHQS_LOG" 2>&1 &
   local pid=$!
   log "===================================\n$command: pid $pid\n===================================\n"
   local delay=0.05
@@ -182,21 +317,17 @@ function install() {
 
   log "\nInstall function completed with exit code: $exit_code\n"
 
-  if [[ $exit_code -eq 0 ]] || [[ $exit_code -eq 90 ]] || [[ $exit_code -eq 91 ]]
+  if [[ $exit_code -eq 0 ]] || [[ $exit_code -eq 90 ]]
   then
-    print_as "success" "Installing $command"
+    printf "${fgcolor[green]}✓${fgcolor[reset]} Installing $command\n"
     if [[ $exit_code -eq 90 ]]
     then
       # 90 means environment will need to be reloaded, so this still successful run. Just set flag to output correct message later
       GHQS_ENV_UPDATED="true"
-    elif [[ $exit_code -eq 91 ]]
-    then
-      # 91 means further configuration is needed, so this still successful run. Just set flag to output correct message later
-      GHQS_ADDITIONAL_CONFIG_NEEDED="true"
     fi
   else
     GHQS_INSTALLER_FAILED="true"
-    print_as "failed" "Installing $command"
+    printf "${fgcolor[red]}✗${fgcolor[reset]} Installing $command\n"
   fi
 
   # Restore the cursor
@@ -220,78 +351,28 @@ function validate_commands() {
 }
 
 #
-# ensure we are executing on a supported operating system
-# Currently supported: Ubuntu 22.x or higher and MacOS 14.x or higher
-#
-# @globals - writes GHQS_OS_NAME, GHQS_OS_VERSION, GHQS_OS_MAJOR_VERSION, GHQS_OS_ARCH, GHQS_OS_KERNEL, GHQS_OS_MACHINE
+# ensure we are executing on a supported operating system. Currently Ubuntu 22+ or MacOS 14+
 #
 function validate_os() {
-  GHQS_OS_NAME="$(lsb_release -si 2> /dev/null || sw_vers -productName || echo "Unknown")"
-  GHQS_OS_VERSION="$(lsb_release -sr 2> /dev/null || sw_vers -productVersion || echo "0.0.0")"
-  GHQS_OS_MAJOR_VERSION="$(cut -d '.' -f 1 <<< "$GHQS_OS_VERSION")"
-  GHQS_OS_ARCH="$(uname -m)"
-  if [[ "$GHQS_OS_NAME" == "macOS" ]] || [[ "$GHQS_OS_NAME" == "macOS Server" ]] || [[ "$GHQS_OS_NAME" == "Mac OS X" ]]
+  local os="$(get_os)"
+  local version="$(get_os_version)"
+  if [[ "$os" == "Ubuntu" && $version -ge 22 ]] || [[ "$os" == "MacOS" && $version -ge 14 ]]
   then
-    # normalize to just MacOS for consistency
-    GHQS_OS_NAME="MacOS"
-  fi
-  if [[ "$GHQS_OS_ARCH" == "arm64" ]]
-  then
-    # some systems report arm64 instead of aarch64. Normalize to aarch64
-    GHQS_OS_ARCH="aarch64"
-  fi
-  if [[ -d "/run/WSL" ]]
-  then
-    GHQS_OS_VM=true
-    GHQS_OS_MACHINE="$GHQS_OS_ARCH/WSL2"
-  elif [[ -d "/opt/orbstack-guest" ]]
-  then
-    GHQS_OS_VM=true
-    GHQS_OS_MACHINE="$GHQS_OS_ARCH/OrbStack"
+    log "Operating system is supported: $os $version"
   else
-    GHQS_OS_VM=false
-    GHQS_OS_MACHINE="$GHQS_OS_ARCH"
-  fi
-  if [[ "$GHQS_OS_NAME" == "Ubuntu" ]] && [[ $GHQS_OS_MAJOR_VERSION -ge 22 ]]
-  then
-    GHQS_OS_KERNEL="Linux"
-  elif [[ "$GHQS_OS_NAME" == "MacOS" ]] && [[ $GHQS_OS_MAJOR_VERSION -ge 14 ]]
-  then
-    GHQS_OS_KERNEL="Darwin"
-  else
-    err "\"$GHQS_OS_NAME $GHQS_OS_VERSION ($GHQS_OS_MACHINE)\" is not a supported operating system."
+    err "The current os \"$os $version\" is not supported."
   fi
 }
 
 #
-# validate shell is supported and the users profile is already configured
+# validate users default shell is supported. Must be either bash or zsh
 #
-# @globals - reads SHELL, HOME, writes GHQS_PROFILE_FILE
+# @globals - reads SHELL
 #
 function validate_shell() {
-  # validate the users shell is either bash or zsh and that they already have a valid profile
-  if [[ "${SHELL#*bash}" != "$SHELL" ]]
+  if [[ $SHELL == */bash ]] || [[ $SHELL == */zsh ]]
   then
-    if [[ -f "$HOME/.bashrc" ]]
-    then
-      GHQS_PROFILE_FILE="$HOME/.bashrc"
-    elif [[ -f "$HOME/.bash_profile" ]]
-    then
-      GHQS_PROFILE_FILE="$HOME/.bash_profile"
-    else
-      err "Can not find a valid bash profile. Ensure either ~/.bashrc or ~/.bash_profile already exist"
-    fi
-  elif [[ "${SHELL#*zsh}" != "$SHELL" ]]
-  then
-    if [[ -f "$HOME/.zshrc" ]]
-    then
-      GHQS_PROFILE_FILE="$HOME/.zshrc"
-    elif [[ -f "$HOME/.zprofile" ]]
-    then
-      GHQS_PROFILE_FILE="$HOME/.zprofile"
-    else
-      err "Can not find a valid zsh profile. Ensure either ~/.zshrc or ~/.zprofile already exist"
-    fi
+    log "Shell is supported: $SHELL"
   else
     err "The current shell \"$SHELL\" is not supported."
   fi
@@ -300,55 +381,103 @@ function validate_shell() {
 #
 # prepare the log file. We want a new log file for each run
 #
-# @globals - reads GHQS_DIR, writes GHQS_LOGFILE
+# @globals - reads GHQS_DIR, writes GHQS_LOG
 #
 function prepare_log() {
-  # delete log if it exists.
-  if [[ -f "$GHQS_DIR/install.log" ]]
+  GHQS_DIR="$HOME/.ghqs"
+  mkdir -p "$GHQS_DIR"
+  GHQS_LOG="$GHQS_DIR/install.log"
+  if [[ -f "$GHQS_LOG" ]]
   then
-    rm -f "$GHQS_DIR/install.log"
+    rm -f "$GHQS_LOG"
   fi
+  touch "$GHQS_LOG"
+}
 
-  # create log file and make current user owner if sudo was used
-  touch "$GHQS_DIR/install.log"
+#
+# Cleanup variables and environment
+#
+# Note: there is no safe way to get the list of functions defined in a particular bash script, so we have to list them manually
+#
+function cleanup() {
+  # unset all generic utiilty functions defined in this script
+  unset -f "basic_format fg_format_256 bg_format_256 build_maps log get_arch get_kernel get_os get_os_version get_os_version_string get_profile_path pushd_tmp popd_tmp"
+  # unset all other functions
+  unset -f "err resolve_sudo install validate_commands validate_os validate_shell prepare_log cleanup init completion_report configure setup"
+  # unset installer functions
+  unset -f "install_git install_git-config"
+  # unset all color map variables
+  unset "${!fgcolor@}" "${!bgcolor@}" "${!style@}"
+  # unset all variables starting with GHQS_
+  unset "${!GHQS_@}"
+}
+
+#
+# Runs all required validations before executing installation scripts
+#
+function init() {
+  prepare_log
+  validate_commands
+  validate_shell
+  validate_os
+  configure
+}
+
+#
+# Print messages upon completion
+#
+# @globals - reads GHQS_INSTALLER_FAILED, GHQS_ENV_UPDATED, GHQS_LOG
+#
+function completion_report() {
+  if [[ "${GHQS_INSTALLER_FAILED:-false}" == "true" ]]
+  then
+    printf "${fgcolor[red]}✗${fgcolor[reset]} Done!\n\n"
+    printf "${fgcolor[yellow]}An error occured. Review \"${fgcolor[reset]}${fgcolor[blue]}$GHQS_LOG${fgcolor[reset]}${fgcolor[yellow]}\" for more information.${fgcolor[reset]}\n"
+  else
+    printf "${fgcolor[green]}✓${fgcolor[reset]} Done!\n\n"
+    if [[ "${GHQS_ENV_UPDATED:-false}" == "true" ]]
+    then
+      printf "${fgcolor[yellow]}Environment was updated. Reload your current shell before proceeding.${fgcolor[reset]}\n"
+    fi
+  fi
 }
 
 #
 # Collects configuration options from the user
 #
-# @globals - reads GHQS_PROFILE_FILE, writes GHQS_GIT_USER_NAME, GHQS__GIT_USER_EMAIL
+# @globals - reads GIT_HUB_PKG_TOKEN, writes GHQS_GIT_USER_NAME, GHQS_GIT_USER_EMAIL, GHQS_GITHUB_TOKEN
 #
 function configure() {
+  local profile="$(get_profile_path)"
+  local git_credentials="$HOME/.git-credentials"
   local name_input
   local name="$(git config --global user.name 2> /dev/null || true)"
   local email_input
   local email="$(git config --global user.email 2> /dev/null || true)"
   local token_input
-  local token=
-  local profile="$GHQS_PROFILE_FILE"
+  local token
 
-  print_as "info" "Responses will be used to configure git and git-credential-manager."
-  printf "\n"
+  printf "${fgcolor[cyan]}Responses will be used to configure GitHub credentials.${fgcolor[reset]}\n\n"
 
   if [[ -n "${name:-}" ]]
   then
-    print_as "prompt" "Full name [$name]: "
+    printf "${fgcolor[cyan]}Full name [${fgcolor[reset]}${name}${fgcolor[cyan]}]: ${fgcolor[reset]}"
   else
-    print_as "prompt" "Full name: "
+    printf "${fgcolor[cyan]}Full name: ${fgcolor[reset]}"
   fi
   read name_input
   name=${name_input:-$name}
-  GHQS_GIT_USER_NAME=$(trim $name)
+  GHQS_GIT_USER_NAME=$name
 
   if [[ -n "${email:-}" ]]
   then
-    print_as "prompt" "Email address [$email]: "
+    printf "${fgcolor[cyan]}Email address [${fgcolor[reset]}${email}${fgcolor[cyan]}]: ${fgcolor[reset]}"
   else
-    print_as "prompt" "Email address: "
+    printf "${fgcolor[cyan]}Email address: ${fgcolor[reset]}"
   fi
   read email_input
   email=${email_input:-$email}
-  GHQS_GIT_USER_EMAIL=$(trim $email)
+  GHQS_GIT_USER_EMAIL=$email
 
   # if token is not already exported but it IS already set in users profile then capture it
   if [[ -z "${token:-}" ]] && cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=";
@@ -360,84 +489,21 @@ function configure() {
   then
     # token is already exported, but was not set from the users profile. Do not try and overwrite it, just skip
     log "Environment variable GIT_HUB_PKG_TOKEN is already set. Skipping token configuration"
+    GHQS_GITHUB_TOKEN=$GIT_HUB_PKG_TOKEN
     printf "\n"
     return 0
-  elif [[ -n "${token:-}" ]]
+  fi
+
+  if [[ -n "${token:-}" ]]
   then
-    print_as "prompt" "GitHub token [$token]: "
+    printf "${fgcolor[cyan]}GitHub token [${fgcolor[reset]}${token}${fgcolor[cyan]}]: ${fgcolor[reset]}"
   else
-    print_as "prompt" "GitHub token: "
+    printf "${fgcolor[cyan]}GitHub token: ${fgcolor[reset]}"
   fi
   read token_input
   token=${token_input:-$token}
+  GHQS_GITHUB_TOKEN=$token
   printf "\n"
-
-  # if we get this far update the profile if needed
-  log "Profile is \"$profile\"."
-  if cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN="; then
-    log "Profile is already set to export github PAT. Confirming value is correct."
-    if cat "$profile" | grep -q "export GIT_HUB_PKG_TOKEN=$token"; then
-      log "Profile is already set to export github PAT with correct value. Skipping."
-    else
-      log "Profile is set to export github PAT with stale value. Updating."
-      sed -i.bak "s/^export GIT_HUB_PKG_TOKEN=.*$/export GIT_HUB_PKG_TOKEN=$token/" $profile
-    fi
-  else
-    log "Adding export of github PAT to profile."
-    printf "\n# github token for private registries\nexport GIT_HUB_PKG_TOKEN=$token\n" >> "$profile"
-    # set flag so that completion report informs user that environment needs reload
-    GHQS_ENV_UPDATED="true"
-  fi
-}
-
-#
-# Runs all required validations before executing installation scripts
-#
-function init() {
-  GHQS_DIR=$(mktemp -d 2> /dev/null || mktemp -d -t 'github-quickstart')
-  validate_commands
-  validate_shell
-  validate_os
-  prepare_log
-  configure
-}
-
-#
-# Cleanup variables and environment
-# Note: there is no safe way to get the list of functions defined in a particular bash script, so we have to list them manually
-#
-function cleanup() {
-  local utils="err resolve_suo print_as log trim install validate_commands validate_os validate_shell prepare_log configure init cleanup completion_report setup"
-  local installers="install_git install_git-config"
-  unset "${!GHQS_@}" # unset all variables starting with GHQS_
-  unset -f $utils $installers # unset all functions defined in this script
-}
-
-#
-# Print messages upon completion
-#
-# @globals - reads GHQS_DIR, GHQS_INSTALLER_FAILED, GHQS_ENV_UPDATED, GHQS_ADDITIONAL_CONFIG_NEEDED
-#
-function completion_report() {
-  if [[ "${GHQS_INSTALLER_FAILED:-false}" == "true" ]]
-  then
-    print_as "failed" "Done!"
-    printf "\n"
-    print_as "important" "An error occured. Review \"$GHQS_DIR/install.log\" for more information."
-  else
-    print_as "success" "Done!"
-    printf "\n"
-    print_as "info" "🚀 You should now be able to clone a private repository."
-    printf "\n"
-    if [[ "${GHQS_ADDITIONAL_CONFIG_NEEDED:-false}" == "true" ]]
-    then
-      print_as "important" "Additional configuration needed. Run \"git-credential-manager configure\"."
-    fi
-    if [[ "${GHQS_ENV_UPDATED:-false}" == "true" ]]
-    then
-      print_as "important" "Environment was updated. Reload your current shell before proceeding."
-    fi
-  fi
 }
 
 #=============================================================================#
@@ -445,12 +511,12 @@ function completion_report() {
 #=============================================================================#
 
 #
-# Installs the latest version of git and git-credential-manager available at time 
+# Installs the latest version of git and git-credential-manager available at time
 # of install, or updates current version if needed.
 #
 function install_git() {
-  local gcm_bin="$(which git-credential-manager 2> /dev/null || true)"
-  if [[ "$GHQS_OS_NAME" == "Ubuntu" ]]
+  local os="$(get_os)"
+  if [[ "$os" == "Ubuntu" ]]
   then
     # update and upgrade, then install packages, then cleanup
     log "Updating and upgrading system packages and installing git"
@@ -458,22 +524,7 @@ function install_git() {
     sudo apt-get -y upgrade
     sudo apt-get -y install git
     sudo apt-get -y clean
-    # if we are on WSL2 or OrbStack, or if the binary is already available, skip installing git-credential-manager
-    if [[ -d "/run/WSL" ]] || [[ -d "/opt/orbstack-guest" ]] || [[ -n "${gcm_bin:-}" ]]
-    then
-      log "Detected that Ubuntu is running in a VM. Skipping git-credential-manager installation."
-    else
-      log "Bare metal installation of Ubuntu detected. Downloading and installing git-credential-manager using dpkg"
-      tmpdir=$(mktemp -d 2> /dev/null || mktemp -d -t 'github-quickstart-gcm')
-      log "Using temp directory '$tmpdir'"
-      pushd $tmpdir > /dev/null
-      curl -L https://github.com/git-ecosystem/git-credential-manager/releases/download/v2.6.0/gcm-linux_amd64.2.6.0.deb -o gcm-linux_amd64.2.6.0.deb
-      sudo dpkg -i gcm-linux_amd64.2.5.0.deb
-      popd > /dev/null
-      rm -rf $tmpdir
-      return 91 # 91 is the code to indicate that further configuration is needed
-    fi
-  elif [[ "$GHQS_OS_NAME" == "MacOS" ]]
+  elif [[ "$os" == "MacOS" ]]
   then
     # Use homebrew to install os packages
     local brew_bin="$(which brew 2> /dev/null || true)"
@@ -492,51 +543,30 @@ function install_git() {
       popd > /dev/null
       rm -rf $tmpdir
     fi
-    # now use homebrew to install git and git-credential-manager
+    # now use homebrew to install git
     brew install git
-    brew install --cask git-credential-manager
   else
     err "Unknown operating system \"$os\"."
   fi
 }
 
 #
-# Configure existing git install
+# Configure git install
 #
-# @globals - reads GHQS_GIT_USER_NAME and GHQS_GIT_USER_EMAIL
+# @globals - reads GIT_HUB_PKG_TOKEN, GHQS_GIT_USER_NAME and GHQS_GIT_USER_EMAIL, GHQS_GITHUB_TOKEN
 #
 function install_git-config() {
-  local gcm_bin="$(which git-credential-manager 2> /dev/null || true)"
-  local gcm_wsl2_bin="/mnt/c/Program\ Files/git/mingw64/bin/git-credential-manager.exe"
   local i
-
-  # if we did not find the GCM executable (it should be on the system path by default) we might be on WSL2
-  if [[ -z "${gcm_bin:-}" ]] && [[ -d "/run/WSL" ]] && [[ -f "${gcm_wsl2_bin//[\\]/}" ]] # remove backslashes from variable value
-  then
-    # we are in a wsl2 vm on windows and the gcm binary is available in its default location
-    gcm_bin=$gcm_wsl2_bin
-    log "\"git-credential-manager\" was not found but WSL2 detected, setting \"credential.helper\" to \"$gcm_wsl2_bin\"."
-  fi
-
-  # if it is still undefined log it and return error code
-  if [[ -z "${gcm_bin:-}" ]]
-  then
-    log "testing \"${gcm_bin:-}\""
-    log "\"git-credential-manager\" was expected to be installed but was not found. Cannot continue."
-    return 1
-  fi
+  local profile="$(get_profile_path)"
+  local git_credentials="$HOME/.git-credentials"
+  local url="https://oauth2:${GHQS_GITHUB_TOKEN}@github.com"
 
   declare -a keys=( user.name user.email credential.helper )
-  declare -a values=( "${GHQS_GIT_USER_NAME:-}" "${GHQS_GIT_USER_EMAIL:-}" "$gcm_bin" )
+  declare -a values=( "${GHQS_GIT_USER_NAME}" "${GHQS_GIT_USER_EMAIL}" "store" )
 
-  # populate current with the current values read from git config
+  # populate .gitconfig with user name and email and set credential helper to store
   for (( i=0; i<${#keys[@]}; i++ ))
   do
-    if [[ "${keys[$i]}" == "credential.helper" ]] && [[ "$GHQS_OS_NAME" == "MacOS" ]]
-    then
-      # dont set credential.helper on MacOS, it is set correctly by default
-      continue
-    fi
     if [[ "$(git config --global "${keys[$i]}" || true)" != "${values[$i]}" ]]
     then
       git config --global --replace-all "${keys[$i]}" "${values[$i]}"
@@ -545,6 +575,43 @@ function install_git-config() {
       log "git config setting '${keys[$i]}' is already set to '${values[$i]}', skipping."
     fi
   done
+
+  # update credential store with github token if needed
+  if [[ ! -f "$git_credentials" ]]
+  then
+    log "Creating \"~/.git-credentials\" file."
+    touch "$git_credentials"
+  fi
+  if cat "$git_credentials" | grep -q --fixed-strings --ignore-case "$url"; then
+    log "Credentials are already stored. Skipping."
+  elif cat "$git_credentials" | grep -q --fixed-strings --ignore-case "^.*@github\.com$"; then
+    log "Credentials are already stored for \"@github.com\", but token has changed. Updating."
+    sed -i.bak "s|^.*@github\.com$|$url|" $git_credentials
+  else
+    echo "$url" >> "$git_credentials"
+    log "Credentials were stored in \"$git_credentials\"."
+  fi
+
+  # update user profile if needed
+  log "Profile is \"$profile\"."
+  if cat "$profile" | grep -q --fixed-strings --ignore-case "export GIT_HUB_PKG_TOKEN="; then
+    log "Profile is already set to export github PAT. Confirming value is correct."
+    if cat "$profile" | grep -q --fixed-strings --ignore-case "export GIT_HUB_PKG_TOKEN=$GHQS_GITHUB_TOKEN"; then
+      log "Profile is already set to export github PAT with correct value. Skipping."
+    else
+      log "Profile is set to export github PAT with stale value. Updating."
+      sed -i.bak "s/^export GIT_HUB_PKG_TOKEN=.*$/export GIT_HUB_PKG_TOKEN=$GHQS_GITHUB_TOKEN/" $profile
+    fi
+  elif [[ -n "${GIT_HUB_PKG_TOKEN:-}" ]]
+  then
+    log "GIT_HUB_PKG_TOKEN is already set from a source other than the users profile. Skipping."
+    return 0
+  else
+    log "Adding export of github PAT to profile."
+    printf "\n# github token for private registries\nexport GIT_HUB_PKG_TOKEN=$GHQS_GITHUB_TOKEN\n" >> "$profile"
+    # set flag so that completion report informs user that environment needs reload
+    return 90
+  fi
 }
 
 #=============================================================================#
@@ -555,26 +622,17 @@ function install_git-config() {
 # Execute a series of installer functions sequentially and report results
 #
 function setup() {
-  local completion_report_output
-
-  # call init
   init
 
   # run all the installers one at a time
   install 'git'
   install 'git-config'
 
-  # capture output of completion report and perform cleanup
-  completion_report_output="$(completion_report && cleanup)"
-
-  printf "$completion_report_output\n"
+  printf "$(completion_report && cleanup)\n"
 }
 
-# only run when called directly and not sourced from another script (works in bash and zsh)
-if [[ "${0}" == "bash" ]] || [[ "${BASH_SOURCE[0]}" == "${0}" ]] || echo "${ZSH_EVAL_CONTEXT+}" | grep -q "file"
-then
-  resolve_sudo
-  setup
-fi
+build_maps
+resolve_sudo
+setup
 
 } # this ensures that the entire script is downloaded #
