@@ -299,7 +299,12 @@ function validate_os() {
 # @globals - reads SHELL
 #
 function validate_shell() {
-  if [[ $SHELL == */bash ]] || [[ $SHELL == */zsh ]]
+  local kernel="$(get_kernel)"
+
+  if [[ "$kernel" == "Darwin" ]] && [[ $SHELL != */zsh ]]
+  then
+    err "You must use the default zsh shell. Please run 'chsh -s /bin/zsh' and try again."
+  elif [[ $SHELL == */bash ]] || [[ $SHELL == */zsh ]]
   then
     log "Shell is supported: $SHELL"
   else
@@ -347,8 +352,8 @@ function cleanup() {
 function init() {
   prepare_log
   validate_commands
-  validate_shell
   validate_os
+  validate_shell
   configure
 }
 
