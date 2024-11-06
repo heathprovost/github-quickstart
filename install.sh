@@ -330,7 +330,7 @@ function prepare_log() {
 #
 function cleanup() {
   # unset all generic utiilty functions defined in this script
-  unset -f "basic_format fg_format_256 bg_format_256 build_maps log get_arch get_kernel get_os get_os_version get_os_version_string get_profile_path pushd_tmp popd_tmp"
+  unset -f "generate_ansi_colors log get_arch get_kernel get_os get_os_version get_os_version_string get_profile_path pushd_tmp popd_tmp"
   # unset all other functions
   unset -f "err resolve_sudo install validate_commands validate_os validate_shell prepare_log cleanup init completion_report configure setup"
   # unset installer functions
