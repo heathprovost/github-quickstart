@@ -446,6 +446,7 @@ function configure() {
 function install_git() {
   local os="$(get_os)"
   local profile="$(get_profile_path)"
+  local profile_updated
 
   if [[ "$os" == "Ubuntu" ]]
   then
@@ -482,7 +483,8 @@ function install_git() {
           log "Homebrew is already in the users profile. Skipping."
         else
           log "Adding homebrew to the users profile."
-          printf '\n# homebrew\neval "$(/opt/homebrew/bin/brew shellenv)\n' >> "$profile"
+          printf '\n# homebrew\neval "$(/opt/homebrew/bin/brew shellenv)"\n' >> "$profile"
+          profile_updated="true"
         fi
       fi
 
@@ -497,6 +499,12 @@ function install_git() {
     fi
     # now use homebrew to install git
     brew install git
+
+    # if profile was updated, set flag so that completion report informs user that environment needs reload
+    if [[ -n "${profile_updated:-}" ]]
+    then
+      return 90
+    fi
   else
     err "Unknown operating system \"$os\"."
   fi
