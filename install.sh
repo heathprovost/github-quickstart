@@ -445,6 +445,8 @@ function configure() {
 #
 function install_git() {
   local os="$(get_os)"
+  local profile="$(get_profile_path)"
+
   if [[ "$os" == "Ubuntu" ]]
   then
     # update and upgrade, then install packages, then cleanup
@@ -468,9 +470,30 @@ function install_git() {
       log "Using temp directory '$tmpdir'"
       pushd $tmpdir > /dev/null
       curl -L https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o install.sh
+      chmod +x install.sh
       ./install.sh
       popd > /dev/null
       rm -rf $tmpdir
+
+      # add homebrew to users profile if needed and source it
+      if [[ -f "$profile" ]]
+      then
+        if cat "$profile" | grep -q --fixed-strings 'eval "$(/opt/homebrew/bin/brew shellenv)"'; then
+          log "Homebrew is already in the users profile. Skipping."
+        else
+          log "Adding homebrew to the users profile."
+          printf '\n# homebrew\neval "$(/opt/homebrew/bin/brew shellenv)\n' >> "$profile"
+        fi
+      fi
+
+      log "making brew command available to current shell session"
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+      log "confirming homebrew is now available"
+      brew_bin="$(which brew 2> /dev/null || true)"
+      if [[ -z "${brew_bin:-}" ]]
+      then
+        err "Homebrew was installed but the brew command could not be successfully added to the current session."
+      fi
     fi
     # now use homebrew to install git
     brew install git
