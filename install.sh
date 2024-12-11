@@ -371,7 +371,7 @@ function completion_report() {
     printf "${ansi_green}✓${ansi_reset} Done!\n\n"
     if [[ "${GHQS_ENV_UPDATED:-false}" == "true" ]]
     then
-      printf "${ansi_yellow}Environment was updated. Reload your current shell before proceeding.${ansi_reset}\n"
+      printf "${ansi_yellow}Environment was updated. Close and reopen your terminal before continuing.${ansi_reset}\n"
     fi
   fi
 }
