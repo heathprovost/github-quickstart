@@ -526,10 +526,10 @@ function install_git-config() {
   local git_credentials="$HOME/.git-credentials"
   local url="https://oauth2:${GHQS_GITHUB_TOKEN}@github.com"
 
-  declare -a keys=( user.name user.email credential.helper )
-  declare -a values=( "${GHQS_GIT_USER_NAME}" "${GHQS_GIT_USER_EMAIL}" "store" )
+  declare -a keys=( user.name user.email credential.helper push.default core.autocrlf core.eol )
+  declare -a values=( "${GHQS_GIT_USER_NAME}" "${GHQS_GIT_USER_EMAIL}" "store" "simple" "false" "lf" )
 
-  # populate .gitconfig with user name and email and set credential helper to store
+  # populate .gitconfig with user name and email, set credential helper to store, and set standard git config settings
   for (( i=0; i<${#keys[@]}; i++ ))
   do
     if [[ "$(git config --global "${keys[$i]}" || true)" != "${values[$i]}" ]]

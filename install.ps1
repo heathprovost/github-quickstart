@@ -56,6 +56,11 @@ function Add-GitConfig {
   Write-host -ForegroundColor Cyan 'Responses will be used to configure git and git-credential-manager.'
   Write-host ''
 
+  # set a few standard git config values
+  git config --global push.default "simple" | out-null
+  git config --global core.autocrlf "false" | out-null
+  git config --global core.eol "lf" | out-null
+
   $name_input = Read-HostWithDefault 'Full name' $name
   if ($name_input -ne $null -and $name_input -ne "$name") {
     git config --global user.name "$name_input" | out-null
