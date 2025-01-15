@@ -27,6 +27,8 @@ function Install-Git {
   $git_bin = $null
   $gcm_bin = $null
 
+  Set-Location -Path $env:USERPROFILE
+
   $git_bin = (Get-Command -ErrorAction SilentlyContinue -Name 'git').Source
 
   if ( $git_bin -ne $null -and $git_bin -match '\\cmd\\git\.exe$' ) {
