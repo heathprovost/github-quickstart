@@ -10,6 +10,10 @@ An x86_64 or Arm64 computer running, at a minimum, one of the following:
 - **MacOS 14 (Sonoma)**
 - **Ubuntu 22.04 LTS**
 
+You will also need your [GitHub PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens). Currently
+this script does not support fine-grained PATs, only [Classic PATs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic) are supported.
+
+
 *Note: Installing inside of Virtual Machines such as [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)
 and [OrbStack](https://orbstack.dev/) is supported if running Ubuntu.*
 
